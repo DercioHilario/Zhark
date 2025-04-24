@@ -1,12 +1,19 @@
-import React from 'react';
-import { Modal, View, Text, Image, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { Modal, View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { X as Close, Minus, Plus, Check } from 'lucide-react-native';
 import { useCartStore } from '../src/stores/cartStore';
+import * as Font from 'expo-font';
+import styles from "../src/app/Style/popapVestuario";
 
 interface ProductColor {
     name: string;
     code: string;
     images: string[];
+}
+
+type ProductSize = {
+    id: string;
+    label: string;
 }
 
 interface Product {
@@ -15,6 +22,7 @@ interface Product {
     price: string;
     description: string;
     colors: ProductColor[];
+    sizes: string[];
 }
 
 interface ProductDetailsModalProps {
@@ -24,17 +32,39 @@ interface ProductDetailsModalProps {
 }
 
 export default function ProductDetailsModal({ visible, onClose, product }: ProductDetailsModalProps) {
-    const [selectedColor, setSelectedColor] = React.useState<ProductColor | null>(null);
-    const [currentImageIndex, setCurrentImageIndex] = React.useState(0);
-    const [quantity, setQuantity] = React.useState(1);
-    const [addedToCart, setAddedToCart] = React.useState(false);
+    const [selectedColor, setSelectedColor] = useState<ProductColor | null>(null);
+    const [selectedSize, setSelectedSize] = useState<ProductSize | null>(null);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [quantity, setQuantity] = useState(1);
+    const [addedToCart, setAddedToCart] = useState(false);
+    const [fontsLoaded, setFontsLoaded] = useState(false);
+
     const addToCart = useCartStore((state) => state.addToCart);
 
-    React.useEffect(() => {
-        if (product && product.colors.length > 0) {
-            setSelectedColor(product.colors[0]);
+    useEffect(() => {
+        if (product) {
+            if (product.colors.length > 0) {
+                setSelectedColor(product.colors[0]);
+            }
+            if (product.sizes.length > 0) {
+                setSelectedSize(null); // usuário deve escolher
+            }
         }
     }, [product]);
+
+    useEffect(() => {
+        const loadFonts = async () => {
+            try {
+                await Font.loadAsync({
+                    Wellfleet: require("../assets/fonts/Wellfleet-Regular.ttf"),
+                });
+                setFontsLoaded(true);
+            } catch (error) {
+                console.error("Erro ao carregar fontes:", error);
+            }
+        };
+        loadFonts();
+    }, []);
 
     if (!product || !selectedColor) return null;
 
@@ -47,6 +77,11 @@ export default function ProductDetailsModal({ visible, onClose, product }: Produ
     };
 
     const handleAddToCart = () => {
+        if (!selectedSize) {
+            Alert.alert("Selecione um tamanho", "Por favor, selecione um tamanho antes de adicionar ao carrinho.");
+            return;
+        }
+
         addToCart({
             id: product.id,
             name: product.name,
@@ -57,29 +92,18 @@ export default function ProductDetailsModal({ visible, onClose, product }: Produ
                 name: selectedColor.name,
                 code: selectedColor.code,
             },
+            selectedSize: {
+                name: selectedSize.id,
+                code: selectedSize.label,
+            },
         });
+
         setAddedToCart(true);
         setTimeout(() => {
             setAddedToCart(false);
             onClose();
         }, 1500);
     };
-
-    const benefits = [
-        'Material de alta qualidade',
-        'Conforto durante todo o dia',
-        'Durabilidade garantida',
-        'Design moderno e versátil',
-        'Fácil de combinar',
-    ];
-
-    const features = [
-        'Tecido respirável',
-        'Costuras reforçadas',
-        'Acabamento premium',
-        'Lavagem fácil',
-        'Não desbota',
-    ];
 
     return (
         <Modal visible={visible} animationType="slide" transparent>
@@ -96,9 +120,10 @@ export default function ProductDetailsModal({ visible, onClose, product }: Produ
                             showsHorizontalScrollIndicator={false}
                             onScroll={(e) => {
                                 const offset = e.nativeEvent.contentOffset.x;
-                                setCurrentImageIndex(Math.round(offset / styles.productImage.width));
+                                setCurrentImageIndex(Math.round(offset / 400));
                             }}
-                            scrollEventThrottle={16}>
+                            scrollEventThrottle={16}
+                        >
                             {selectedColor.images.map((image, index) => (
                                 <Image key={index} source={{ uri: image }} style={styles.productImage} />
                             ))}
@@ -118,28 +143,12 @@ export default function ProductDetailsModal({ visible, onClose, product }: Produ
 
                         <View style={styles.detailsContainer}>
                             <Text style={styles.productName}>{product.name}</Text>
-                            <Text style={styles.productPrice}>{product.price}</Text>
+                            <Text style={styles.productPrice}>{product.price} MTZ</Text>
 
-                            <Text style={styles.sectionTitle}>Descrição</Text>
+                            <Text style={styles.sectionTitle}>Descrição:</Text>
                             <Text style={styles.description}>{product.description}</Text>
 
-                            <Text style={styles.sectionTitle}>Benefícios</Text>
-                            {benefits.map((benefit, index) => (
-                                <View key={index} style={styles.listItem}>
-                                    <Check size={20} color="#00C853" />
-                                    <Text style={styles.listText}>{benefit}</Text>
-                                </View>
-                            ))}
-
-                            <Text style={styles.sectionTitle}>Características</Text>
-                            {features.map((feature, index) => (
-                                <View key={index} style={styles.listItem}>
-                                    <Check size={20} color="#2196F3" />
-                                    <Text style={styles.listText}>{feature}</Text>
-                                </View>
-                            ))}
-
-                            <Text style={styles.sectionTitle}>Cores disponíveis</Text>
+                            <Text style={styles.sectionTitle}>Cores disponíveis:</Text>
                             <View style={styles.colorContainer}>
                                 {product.colors.map((color) => (
                                     <TouchableOpacity
@@ -157,7 +166,30 @@ export default function ProductDetailsModal({ visible, onClose, product }: Produ
                                 ))}
                             </View>
 
-                            <Text style={styles.sectionTitle}>Quantidade</Text>
+                            <Text style={styles.sectionTitle}>Tamanhos disponíveis:</Text>
+                            <View style={styles.sizeContainer}>
+                                {product.sizes.map((size) => (
+                                    <TouchableOpacity
+                                        key={size}
+                                        style={[
+                                            styles.sizeOption,
+                                            selectedSize?.label === size && styles.sizeOptionSelected,
+                                        ]}
+                                        onPress={() => setSelectedSize({ id: size, label: size })}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.sizeText,
+                                                selectedSize?.label === size && styles.sizeTextSelected,
+                                            ]}
+                                        >
+                                            {size}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <Text style={styles.sectionTitle}>Quantidade:</Text>
                             <View style={styles.quantityContainer}>
                                 <TouchableOpacity style={styles.quantityButton} onPress={decreaseQuantity}>
                                     <Minus size={20} color="#000000" />
@@ -184,136 +216,3 @@ export default function ProductDetailsModal({ visible, onClose, product }: Produ
         </Modal>
     );
 }
-
-const styles = StyleSheet.create({
-    modalContainer: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modalContent: {
-        flex: 1,
-        backgroundColor: '#ffffff',
-        marginTop: 60,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-    },
-    closeButton: {
-        position: 'absolute',
-        right: 20,
-        top: 20,
-        zIndex: 1,
-        backgroundColor: '#ffffff',
-        padding: 8,
-        borderRadius: 20,
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    productImage: {
-        width: 400,
-        height: 400,
-        resizeMode: 'cover',
-    },
-    indicators: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        paddingVertical: 16,
-    },
-    indicator: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: '#cccccc',
-        marginHorizontal: 4,
-    },
-    indicatorActive: {
-        backgroundColor: '#000000',
-    },
-    detailsContainer: {
-        padding: 20,
-    },
-    productName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#000000',
-    },
-    productPrice: {
-        fontSize: 20,
-        color: '#666666',
-        marginTop: 8,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#000000',
-        marginTop: 24,
-        marginBottom: 12,
-    },
-    description: {
-        fontSize: 16,
-        color: '#666666',
-        lineHeight: 24,
-    },
-    listItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    listText: {
-        fontSize: 16,
-        color: '#333333',
-        marginLeft: 8,
-    },
-    colorContainer: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    colorOption: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-    },
-    colorOptionSelected: {
-        borderWidth: 2,
-        borderColor: '#000000',
-    },
-    quantityContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    quantityButton: {
-        backgroundColor: '#f5f5f5',
-        padding: 8,
-        borderRadius: 8,
-    },
-    quantityText: {
-        fontSize: 18,
-        fontWeight: '500',
-        color: '#000000',
-    },
-    addToCartButton: {
-        backgroundColor: '#000000',
-        padding: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-        marginTop: 32,
-        flexDirection: 'row',
-        justifyContent: 'center',
-    },
-    addedToCartButton: {
-        backgroundColor: '#00C853',
-    },
-    addToCartText: {
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    checkIcon: {
-        marginLeft: 8,
-    },
-});

@@ -318,4 +318,30 @@ export default StyleSheet.create({
         color: '#333',
         fontFamily: "Wellfleet",
     },
+
+    addToCartButton: {
+        backgroundColor: '#000',
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 5,
+        marginBottom: 10
+    },
+    addedToCartButton: {
+        backgroundColor: '#4CAF50',
+    },
+    addToCartText: {
+        color: '#fff',
+        fontSize: 16,
+        marginRight: 8,
+        fontFamily: "Wellfleet",
+    },
+    checkIcon: {
+        marginLeft: 4,
+    },
+    successMessage: {
+        fontFamily: "Wellfleet",
+    }
 });

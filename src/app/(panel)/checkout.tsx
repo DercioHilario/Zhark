@@ -11,11 +11,11 @@ export default function CartScreen() {
         return sum + price * item.quantity;
     }, 0);
 
-    const handleIncreaseQuantity = (id: number, colorCode: string, currentQuantity: number) => {
+    const handleIncreaseQuantity = (id: number, colorCode: string | undefined, currentQuantity: number) => {
         updateQuantity(id, colorCode, currentQuantity + 1);
     };
 
-    const handleDecreaseQuantity = (id: number, colorCode: string, currentQuantity: number) => {
+    const handleDecreaseQuantity = (id: number, colorCode: string | undefined, currentQuantity: number) => {
         if (currentQuantity > 1) {
             updateQuantity(id, colorCode, currentQuantity - 1);
         }
@@ -24,8 +24,15 @@ export default function CartScreen() {
     if (items.length === 0) {
         return (
             <SafeAreaView style={styles.container}>
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Meu Carrinho</Text>
+                </View>
                 <View style={styles.emptyContainer}>
-                    <Text style={styles.emptyText}>Seu carrinho está vazio</Text>
+                    <Image
+                        source={require('../../../assets/img/empty.gif')} // substitua pelo nome correto da imagem
+                        style={styles.emptyImage}
+                        resizeMode="contain"
+                    />
                 </View>
             </SafeAreaView>
         );
@@ -33,82 +40,129 @@ export default function CartScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <Text style={styles.title}>Meu Carrinho</Text>
             <ScrollView>
-                <Text style={styles.title}>Meu Carrinho</Text>
                 {items.map((item) => (
-                    <View key={`${item.id}-${item.selectedColor.code}`} style={styles.cartItem}>
-                        <Image source={{ uri: item.image }} style={styles.itemImage} />
-                        <View style={styles.itemDetails}>
-                            <Text style={styles.itemName}>{item.name}</Text>
-                            <Text style={styles.itemColor}>Cor: {item.selectedColor.name}</Text>
-                            <Text style={styles.itemPrice}>{item.price}</Text>
-                            <View style={styles.quantityContainer}>
-                                <View style={styles.quantityControls}>
+                    <View key={`${item.id}-${item.selectedColor?.code || 'default'}`} style={styles.cartItems}>
+                        <View style={styles.cartItem}>
+                            <Image source={{ uri: item.image }} style={styles.itemImage} />
+                            <View style={styles.itemDetails}>
+                                <View style={styles.cartItemHeader}>
+                                    <View>
+                                        <Text style={styles.itemName}>{item.name}</Text>
+                                        <Text style={styles.itemPrice}>{item.price} MTZ</Text>
+                                        {/* Verifica se selectedColor existe antes de exibir */}
+                                        {item.selectedColor ? (
+                                            <Text style={styles.itemColor}>Cor: {item.selectedColor.name}</Text>
+                                        ) : null}
+                                        {/* Verifica se selectedTamanho existe antes de exibir */}
+                                        {item.selectedSize ? (
+                                            <Text style={styles.itemTamanho}>Tamanho: {item.selectedSize.name}</Text>
+                                        ) : null}
+                                    </View>
                                     <TouchableOpacity
-                                        style={styles.quantityButton}
-                                        onPress={() => handleDecreaseQuantity(item.id, item.selectedColor.code, item.quantity)}
+                                        onPress={() => removeFromCart(item.id, item.selectedColor?.code)}
+                                        style={styles.removeButton}
                                     >
-                                        <Minus size={20} color="#000000" />
-                                    </TouchableOpacity>
-                                    <Text style={styles.quantityText}>{item.quantity}</Text>
-                                    <TouchableOpacity
-                                        style={styles.quantityButton}
-                                        onPress={() => handleIncreaseQuantity(item.id, item.selectedColor.code, item.quantity)}
-                                    >
-                                        <Plus size={20} color="#000000" />
+                                        <Trash2 size={24} color="#FF4444" />
                                     </TouchableOpacity>
                                 </View>
-                                <TouchableOpacity
-                                    onPress={() => removeFromCart(item.id, item.selectedColor.code)}
-                                    style={styles.removeButton}
-                                >
-                                    <Trash2 size={20} color="#FF4444" />
-                                </TouchableOpacity>
+
+                                <View style={styles.quantityContainer}>
+                                    <View style={styles.quantityControls}>
+                                        <TouchableOpacity
+                                            style={styles.quantityButton}
+                                            onPress={() => handleDecreaseQuantity(item.id, item.selectedColor?.code, item.quantity)}
+                                        >
+                                            <Minus size={20} color="#000000" />
+                                        </TouchableOpacity>
+                                        <Text style={styles.quantityText}>{item.quantity}</Text>
+                                        <TouchableOpacity
+                                            style={styles.quantityButton}
+                                            onPress={() => handleIncreaseQuantity(item.id, item.selectedColor?.code, item.quantity)}
+                                        >
+                                            <Plus size={20} color="#000000" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
                             </View>
                         </View>
                     </View>
                 ))}
+            </ScrollView>
+            <View style={styles.cartFooter}>
                 <View style={styles.totalContainer}>
-                    <Text style={styles.totalText}>Total:</Text>
-                    <Text style={styles.totalAmount}>R$ {total.toFixed(2).replace('.', ',')}</Text>
+                    <Text style={styles.totalLabel}>Total:</Text>
+                    <Text style={styles.totalAmount}>{total.toFixed(2).replace('.', ',')} MTZ</Text>
                 </View>
                 <TouchableOpacity style={styles.checkoutButton}>
                     <Text style={styles.checkoutText}>Finalizar Compra</Text>
                 </TouchableOpacity>
-            </ScrollView>
+            </View>
         </SafeAreaView>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#ffffff',
     },
+    header: {
+        backgroundColor: '#fff',
+        padding: 10,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        fontFamily: "Wellfleet",
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    headerTitle: {
+        fontSize: 24,
+        color: 'black',
+        fontFamily: "Wellfleet",
+    },
     emptyContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20,
     },
-    emptyText: {
-        fontSize: 18,
-        color: '#666666',
+    emptyImage: {
+        height: 300,
+        width: 250,
+        marginBottom: 120,
     },
     title: {
         fontSize: 24,
-        fontWeight: 'bold',
-        padding: 20,
+        padding: 10,
+        textAlign: 'center',
+        fontFamily: "Wellfleet",
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+
+    },
+    cartItems: {
+        flex: 1,
+        paddingHorizontal: 16,
     },
     cartItem: {
         flexDirection: 'row',
-        padding: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 1,
+        marginTop: 5,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     itemImage: {
         width: 100,
-        height: 100,
+        height: 130,
         borderRadius: 10,
     },
     itemDetails: {
@@ -117,17 +171,35 @@ const styles = StyleSheet.create({
     },
     itemName: {
         fontSize: 16,
-        fontWeight: '500',
+        fontWeight: '600',
+        marginBottom: 4,
+        fontFamily: "Wellfleet",
     },
     itemColor: {
         fontSize: 14,
         color: '#666666',
         marginTop: 4,
+        fontFamily: "Wellfleet",
     },
     itemPrice: {
+        color: '#666666',
         fontSize: 16,
         fontWeight: '600',
         marginTop: 4,
+        fontFamily: "Wellfleet",
+    },
+    itemTamanho: {
+        color: '#666666',
+        fontSize: 16,
+        fontWeight: '600',
+        marginTop: 4,
+        fontFamily: "Wellfleet",
+    },
+
+    cartItemHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
     },
     quantityContainer: {
         flexDirection: 'row',
@@ -138,27 +210,27 @@ const styles = StyleSheet.create({
     quantityControls: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f5f5f5',
-        borderRadius: 8,
-        padding: 4,
+        marginTop: 0,
     },
     quantityButton: {
-        padding: 8,
+        borderRadius: 5,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        backgroundColor: '#d6d6d6',
     },
     quantityText: {
-        fontSize: 16,
+        fontSize: 17,
         fontWeight: '500',
         marginHorizontal: 12,
+        fontFamily: "Wellfleet",
     },
     removeButton: {
-        padding: 8,
+
     },
     totalContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        padding: 20,
-        borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
+        marginBottom: 16,
     },
     totalText: {
         fontSize: 18,
@@ -166,18 +238,29 @@ const styles = StyleSheet.create({
     },
     totalAmount: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '600',
+        fontFamily: "Wellfleet",
     },
     checkoutButton: {
-        backgroundColor: '#000000',
-        margin: 20,
-        padding: 15,
-        borderRadius: 10,
+        backgroundColor: '#1CA9C9',
+        padding: 16,
+        borderRadius: 8,
         alignItems: 'center',
     },
     checkoutText: {
-        color: '#ffffff',
+        color: 'white',
         fontSize: 16,
         fontWeight: '600',
+        fontFamily: "Wellfleet",
+    },
+    cartFooter: {
+        padding: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+    },
+    totalLabel: {
+        fontSize: 18,
+        fontWeight: '600',
+        fontFamily: "Wellfleet",
     },
 });

@@ -1,10 +1,13 @@
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import ProductDetailsModal from '../../../components/ProductDetailsModal';
-import { ArrowLeft } from 'lucide-react-native';
+import { Search } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import * as Font from "expo-font";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import styles from "../Style/vestuario";
 
 interface ProductColor {
     name: string;
@@ -19,50 +22,45 @@ interface Product {
     description: string;
     image: string;
     colors: ProductColor[];
+    sizes: string[];
 }
 
-const CATEGORIES = [
-    'Novidades',
-    'Camisetas',
-    'Calças',
-    'Vestidos',
-    'Sapatos',
-    'Acessórios',
-];
+
 
 const FEATURED_PRODUCTS: Product[] = [
     {
         id: 1,
         name: 'Camiseta Básica',
-        price: 'R$ 79,90',
+        price: '79,90',
         description: 'Camiseta básica em algodão premium com acabamento suave e confortável. Perfeita para o dia a dia, possui corte regular e gola careca reforçada. O tecido de alta qualidade garante durabilidade e mantém o formato mesmo após várias lavagens.',
-        image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&auto=format',
+        image: require("../../../assets/img/designer-de-web.png"),
+        sizes: ['P', 'M', 'G', 'GG'],
         colors: [
             {
                 name: 'Branco',
                 code: '#FFFFFF',
                 images: [
-                    'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500&auto=format',
+                    '../../../assets/img/produto/camisaBranca.png',
+                    '../../../assets/img/produto/camisaBranca.png',
+                    '../../../assets/img/produto/camisaBranca.png',
                 ],
             },
             {
                 name: 'Preto',
                 code: '#000000',
                 images: [
-                    'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500&auto=format',
+                    '../../../assets/img/produto/camisaBranca.png',
+                    '../../../assets/img/produto/camisaBranca.png',
+                    '../../../assets/img/produto/camisaBranca.png',
                 ],
             },
             {
                 name: 'Cinza',
                 code: '#888888',
                 images: [
-                    'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=500&auto=format',
+                    '../../../assets/img/produto/camisaBranca.png',
+                    '../../../assets/img/produto/camisaBranca.png',
+                    '../../../assets/img/produto/camisaBranca.png',
                 ],
             },
         ],
@@ -70,9 +68,10 @@ const FEATURED_PRODUCTS: Product[] = [
     {
         id: 2,
         name: 'Calça Jeans',
-        price: 'R$ 159,90',
+        price: '159,90',
         description: 'Calça jeans de alta qualidade com lavagem moderna e acabamento premium. O corte slim favorece diversos tipos de corpo, enquanto o denim elástico garante conforto durante todo o dia. Possui cinco bolsos e detalhes em costura reforçada.',
         image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&auto=format',
+        sizes: ['36', '38', '40', '42', '44'],
         colors: [
             {
                 name: 'Azul Claro',
@@ -97,9 +96,10 @@ const FEATURED_PRODUCTS: Product[] = [
     {
         id: 3,
         name: 'Vestido Floral',
-        price: 'R$ 199,90',
+        price: '199,90',
         description: 'Vestido floral confeccionado em tecido leve e fluido, perfeito para ocasiões especiais ou uso casual. O padrão floral exclusivo combina cores vibrantes que trazem vida ao look. Possui forro interno e fechamento em zíper invisível nas costas.',
         image: 'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=500&auto=format',
+        sizes: ['P', 'M', 'G'],
         colors: [
             {
                 name: 'Rosa',
@@ -126,6 +126,7 @@ const FEATURED_PRODUCTS: Product[] = [
 export default function HomeScreen() {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const openProductDetails = (product: Product) => {
         setSelectedProduct(product);
@@ -138,21 +139,55 @@ export default function HomeScreen() {
         router.replace('/(panel)/inicio');
     }, [router]);
 
+    const [fontsLoaded, setFontsLoaded] = useState(false);
+
+    useEffect(() => {
+        const loadFonts = async () => {
+            try {
+                await Font.loadAsync({
+                    Wellfleet: require("../../../assets/fonts/Wellfleet-Regular.ttf"),
+                });
+                setFontsLoaded(true);
+            } catch (error) {
+                console.error("Erro ao carregar fontes:", error);
+            }
+        };
+        loadFonts();
+    }, []);
+
+    const [selectedSize, setSelectedSize] = useState<string | null>(null);
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar style="auto" />
-            <View style={styles.header}>
-                <TouchableOpacity onPress={goToHome} style={styles.backButton}>
-                    <ArrowLeft size={24} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}> Vestuario </Text>
-                <View style={{ width: 24 }} />
+            {/* Header */}
+            <View style={styles.headerContainer}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={goToHome}>
+                        <MaterialCommunityIcons name="arrow-left" size={28} color="#000" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Comida</Text>
+                    <TouchableOpacity>
+                        <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
+                    </TouchableOpacity>
+                </View>
+                {/* Search */}
+                <View style={styles.searchContainer}>
+                    <Search stroke="#9CA3AF" width={20} height={20} style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar produtos"
+                        value={searchTerm}
+                        onChangeText={setSearchTerm}
+                    />
+                </View>
+                <Text style={styles.sectionTitle}>Produtos:</Text>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
 
                 <View style={styles.featuredSection}>
-                    <Text style={styles.sectionTitle}>Produtos:</Text>
+
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         style={styles.productsContainer}
@@ -171,7 +206,7 @@ export default function HomeScreen() {
                                     />
                                     <View style={styles.productInfo}>
                                         <Text style={styles.productName}>{product.name}</Text>
-                                        <Text style={styles.productPrice}>{product.price}</Text>
+                                        <Text style={styles.productPrice}>{product.price} MTZ</Text>
                                     </View>
                                 </TouchableOpacity>
                             ))}
@@ -188,78 +223,3 @@ export default function HomeScreen() {
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#ffffff',
-    },
-    header: {
-        backgroundColor: '#F3F4F6',
-        padding: 10,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        fontFamily: "Wellfleet",
-    },
-    headerTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#000000',
-    },
-    headerSubtitle: {
-        fontSize: 16,
-        color: '#666666',
-        marginTop: 4,
-    },
-
-    featuredSection: {
-        padding: 5,
-    },
-
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 15,
-        color: '#000000',
-    },
-
-    backButton: {
-        padding: 8,
-    },
-    productsWrapper: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-    },
-
-    productsContainer: {
-        flex: 1,
-        paddingHorizontal: 5,
-    },
-
-    productCard: {
-        width: '48%', // dois por linha com espaço entre
-        backgroundColor: '#F3F4F6',
-        borderRadius: 8,
-        marginBottom: 10,
-        padding: 5,
-    },
-    productImage: {
-        width: '100%',
-        height: 120,
-        borderRadius: 8,
-        resizeMode: 'contain',
-    },
-    productInfo: {
-        marginTop: 8,
-    },
-    productName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    productPrice: {
-        fontSize: 14,
-        color: '#888',
-    },
-});

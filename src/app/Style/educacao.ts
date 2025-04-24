@@ -60,7 +60,7 @@ export default StyleSheet.create({
     input: {
         backgroundColor: '#f8f9fa',
         borderRadius: 8,
-        padding: 12,
+        padding: 10,
         fontSize: 13,
         color: '#333',
         borderWidth: 1,

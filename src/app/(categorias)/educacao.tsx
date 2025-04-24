@@ -176,6 +176,18 @@ export default function StudyGuide() {
                         />
                         <Text style={styles.contador}>{detalhes.length}/{limiteCaracteres}</Text>
                     </View>
+
+                    <TouchableOpacity
+                        style={[styles.submitButton, !isFormValid && styles.submitButtonDisabled]}
+                        onPress={handleSubmit}
+                        disabled={!isFormValid || isLoading}
+                    >
+                        {isLoading ? (
+                            <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                            <Text style={styles.submitButtonText}>Solicitar Guia</Text>
+                        )}
+                    </TouchableOpacity>
                 </View>
 
                 <Modal

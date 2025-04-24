@@ -32,7 +32,7 @@ export default function Profile() {
         <View style={styles.container}>
             <StatusBar style="auto" />
             <View>
-                <Text style={styles.text}>Perfil</Text>
+
             </View>
         </View>
     );
