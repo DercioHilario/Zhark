@@ -20,17 +20,16 @@ export default StyleSheet.create({
         resizeMode: "contain",
     },
     formContainer: {
-        width: "100%", // Garante que ocupa toda a largura
+        width: "100%",
         height: 350,
-        backgroundColor: "hsla(0, 0.00%, 94.90%, 0.45)",
-        borderRadius: 15,
-        paddingHorizontal: 15,
-        paddingTop: 10,
-        shadowColor: '#000',
+        backgroundColor: "#FFFFFF", // Fundo branco
+        borderRadius: 10,
+        padding: 10,
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
-        shadowRadius: 15,
-        elevation: 3,
+        shadowRadius: 6,
+        elevation: 3, // Para Android
     },
     title: {
         textAlign: 'center',
@@ -122,18 +121,16 @@ export default StyleSheet.create({
     },
 
     modalContent: {
-        width: "100%", // Garante que ocupa toda a largura
+        width: "100%",
         height: 400,
-        backgroundColor: "hsla(0, 0.00%, 94.90%, 0.45)",
-        borderRadius: 15,
-        paddingHorizontal: 15,
-        paddingTop: 10,
+        backgroundColor: "#FFFFFF", // Fundo branco
+        borderRadius: 10,
+        padding: 10,
         shadowColor: "#000",
-        shadowOffset: { width: 1, height: 2 },
+        shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 6,
-        elevation: 3, // Para sombra no Android
-        marginBottom: 100,
+        elevation: 3, // Para Android
     },
 
     modalTitle: {
