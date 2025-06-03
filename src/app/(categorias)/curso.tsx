@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, TextInput, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useEffect } from 'react';
-import ProductDetailsModal from '../../../components/ComidaDetailsModal';
+import ProductDetailsModal from '../../../components/CursoDetailsModal';
 import { Search } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -17,7 +17,9 @@ interface Product {
     descrição: string;
     imagem: string;
     imagens: string[];
-    porção: string;
+    duracao: string;
+    Autor: string;
+    Bônus: string;
     categoria: string;
     tempo_entrega_minutos: number | null;
 }
@@ -61,22 +63,23 @@ export default function HomeScreen() {
     useFocusEffect(
         useCallback(() => {
             const onBackPress = () => {
-                router.replace('/(panel)/inicio');
-                return true;
+                // Redireciona para a tela anterior
+                router.replace('/(panel)/inicio'); // ou router.push() se preferir empilhar
+                return true; // evita que o app feche
             };
 
             const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
             return () => subscription.remove();
         }, [])
     );
 
-    // Buscar produtos e categorias do Supabase
+    // Carregar os produtos do Supabase
     const fetchProducts = async () => {
         try {
             const { data, error } = await supabase
-                .from('comida_produtos')
+                .from('curso_produtos')
                 .select('*');
-
             if (error) {
                 console.error('Erro ao buscar produtos:', error);
             } else if (Array.isArray(data)) {
@@ -88,12 +91,14 @@ export default function HomeScreen() {
                     descrição: item.descrição,
                     imagem: item.imagem,
                     imagens: item.imagens,
-                    porção: item.porção,
+                    duracao: item.duracao,
+                    Autor: item.Autor,
+                    Bônus: item.Bônus,
                     categoria: item.categoria,
                     tempo_entrega_minutos: typeof item.tempo_entrega_minutos === 'number' ? item.tempo_entrega_minutos : 0,
                 }));
                 setProducts(mappedProducts);
-
+                // Extraindo categorias únicas
                 const uniqueCategories = [...new Set(mappedProducts.map(p => p.categoria).filter(Boolean))];
                 setCategories(uniqueCategories);
             }
@@ -108,6 +113,7 @@ export default function HomeScreen() {
         fetchProducts();
     }, []);
 
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar style="auto" />
@@ -118,7 +124,7 @@ export default function HomeScreen() {
                     <TouchableOpacity onPress={goToHome}>
                         <MaterialCommunityIcons name="arrow-left" size={28} color="#000" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Comida</Text>
+                    <Text style={styles.headerTitle}>Curso</Text>
                     <TouchableOpacity>
                         <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
                     </TouchableOpacity>
@@ -129,13 +135,11 @@ export default function HomeScreen() {
                     <Search stroke="#9CA3AF" width={20} height={20} style={styles.searchIcon} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Buscar produtos"
+                        placeholder="Buscar Curso"
                         value={searchTerm}
                         onChangeText={setSearchTerm}
                     />
                 </View>
-
-                {/* Categorias */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingVertical: 10 }}>
                     <TouchableOpacity
                         onPress={() => setSelectedCategory(null)}
@@ -165,8 +169,7 @@ export default function HomeScreen() {
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
-
-                <Text style={styles.sectionTitle}>Produtos:</Text>
+                <Text style={styles.sectionTitle}>Cursos:</Text>
             </View>
 
             {/* Lista de produtos */}
@@ -189,10 +192,11 @@ export default function HomeScreen() {
                             </View>
                         ) : (
                             <View style={styles.productsWrapper}>
-                                {products.filter(product =>
-                                    (searchTerm.trim() === '' || product.nome.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                                    (selectedCategory === null || product.categoria === selectedCategory)
-                                ).length === 0 ? (
+                                {products.filter(product => {
+                                    const matchesSearch = searchTerm.trim() === '' || product.nome.toLowerCase().includes(searchTerm.toLowerCase());
+                                    const matchesCategory = selectedCategory === null || product.categoria === selectedCategory;
+                                    return matchesSearch && matchesCategory;
+                                }).length === 0 ? (
                                     <View style={styles.noResultsContainer}>
                                         <Text style={styles.noResultsText}>
                                             {searchTerm.trim() !== ''
@@ -202,10 +206,11 @@ export default function HomeScreen() {
                                     </View>
                                 ) : (
                                     products
-                                        .filter(product =>
-                                            (searchTerm.trim() === '' || product.nome.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                                            (selectedCategory === null || product.categoria === selectedCategory)
-                                        )
+                                        .filter(product => {
+                                            const matchesSearch = searchTerm.trim() === '' || product.nome.toLowerCase().includes(searchTerm.toLowerCase());
+                                            const matchesCategory = selectedCategory === null || product.categoria === selectedCategory;
+                                            return matchesSearch && matchesCategory;
+                                        })
                                         .map((product) => (
                                             <TouchableOpacity
                                                 key={product.id}
@@ -219,7 +224,7 @@ export default function HomeScreen() {
                                                 <View style={styles.productInfo}>
                                                     <Text
                                                         style={styles.productName}
-                                                        numberOfLines={1}
+                                                        numberOfLines={2}
                                                         ellipsizeMode="tail"
                                                     >
                                                         {product.nome}
@@ -231,6 +236,7 @@ export default function HomeScreen() {
                                 )}
                             </View>
                         )}
+
                     </ScrollView>
                 </View>
             </ScrollView>

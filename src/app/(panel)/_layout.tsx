@@ -4,6 +4,8 @@ import { useCartStore } from '../../stores/cartStore';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Feather from '@expo/vector-icons/Feather';
+import { useFonts } from 'expo-font';
+
 
 function CartIcon({ color, size }: { color: string; size: number }) {
     const items = useCartStore((state) => state.items);
@@ -22,6 +24,14 @@ function CartIcon({ color, size }: { color: string; size: number }) {
 }
 
 export default function PanelLayout() {
+    const [fontsLoaded] = useFonts({
+        'Wellfleet-Regular': require('../../../assets/fonts/Wellfleet-Regular.ttf'),
+    });
+
+    if (!fontsLoaded) {
+        return null;
+    }
+
     return (
         <Tabs
             screenOptions={{
@@ -30,7 +40,7 @@ export default function PanelLayout() {
                 tabBarActiveTintColor: "#1de8ff",
                 tabBarInactiveTintColor: "#888",
                 tabBarLabelStyle: {
-                    fontWeight: "bold",
+                    fontFamily: 'Wellfleet-Regular',
                 },
             }}
         >
@@ -40,6 +50,7 @@ export default function PanelLayout() {
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="paper-plane-outline" color={color} size={size} />
                     ),
+                    tabBarLabel: 'Inicio',
                 }}
             />
             <Tabs.Screen
@@ -48,6 +59,7 @@ export default function PanelLayout() {
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name="chatbox-ellipses-outline" color={color} size={size} />
                     ),
+                    tabBarLabel: 'Chat',
                 }}
             />
             <Tabs.Screen
@@ -56,6 +68,7 @@ export default function PanelLayout() {
                     tabBarIcon: ({ color, size }) => (
                         <CartIcon color={color} size={size} />
                     ),
+                    tabBarLabel: 'Checkout',
                 }}
             />
             <Tabs.Screen
@@ -64,6 +77,7 @@ export default function PanelLayout() {
                     tabBarIcon: ({ color, size }) => (
                         <AntDesign name="user" color={color} size={size} />
                     ),
+                    tabBarLabel: 'Perfil',
                 }}
             />
         </Tabs>
@@ -87,5 +101,6 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 12,
         fontWeight: 'bold',
+        fontFamily: 'Wellfleet-Regular',
     },
 });

@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, Modal, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Image, Modal, ActivityIndicator } from "react-native";
 import * as Font from "expo-font";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./styles";
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../constants/supabaseClient';
+import { CustomAlert } from '../../constants/CustomAlert';
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -17,6 +18,12 @@ export default function Login() {
     const [name, setName] = useState("");
     const [userPassword, setUserPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [alertTitle, setAlertTitle] = useState('');
+    const [alertOnConfirm, setAlertOnConfirm] = useState<(() => void) | undefined>(undefined);
+    const [alertShowCancel, setAlertShowCancel] = useState(false);
+    const [alertaMostrado, setAlertaMostrado] = useState(false);
 
     useEffect(() => {
         const loadFonts = async () => {
@@ -37,63 +44,78 @@ export default function Login() {
         return emailRegex.test(email);
     };
 
+
+    const showCustomAlert = (title: string, message: string, onConfirm?: () => void, showCancel = false) => {
+        setAlertTitle(title);
+        setAlertMessage(message);
+        setAlertOnConfirm(() => onConfirm);
+        setAlertShowCancel(showCancel);
+        setAlertVisible(true);
+    };
+
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert("Erro", "Preencha todos os campos");
-            return;
-        }
-        if (!isValidEmail(email)) {
-            Alert.alert("Erro", "Insira um e-mail válido");
+            showCustomAlert("Erro", "Preencha todos os campos.");
             return;
         }
 
         setLoading(true);
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
 
-        if (error) {
-            Alert.alert("Erro", "Erro ao entrar na conta! Verifique se o seu e-mail ou senha estão corretos.");
-            return;
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) {
+                setLoading(false); // Garante que o botão volte ao normal
+                showCustomAlert("Erro", "Erro ao entrar na conta! Verifique se o seu e-mail ou senha estão corretos.");
+                return;
+            }
+
+            router.replace("/(panel)/inicio");
+        } catch (error) {
+            showCustomAlert("Erro", "Ocorreu um erro inesperado.");
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false); // Certifique-se de sempre redefinir o estado de carregamento
-
-        router.replace('/(panel)/inicio');
     };
 
     const handleCreateAccount = async () => {
         if (!userEmail || !userPassword || !name) {
-            Alert.alert("Erro", "Preencha todos os campos");
+            showCustomAlert("Erro", "Preencha todos os campos");
             return;
         }
         if (!isValidEmail(userEmail)) {
-            Alert.alert("Erro", "Insira um e-mail válido");
+            showCustomAlert("Erro", "Insira um e-mail válido");
             return;
         }
         if (userPassword.length < 6) {
-            Alert.alert("Erro", "A senha deve ter no mínimo 6 caracteres.");
+            showCustomAlert("Erro", "A senha deve ter no mínimo 6 caracteres.");
             return;
         }
 
         setLoading(true);
+
         const { data, error } = await supabase.auth.signUp({
             email: userEmail,
             password: userPassword,
             options: {
-                data: { name },
-            },
+                data: {
+                    name: name
+                }
+            }
         });
 
-        setLoading(false);
-
         if (error) {
-            Alert.alert("Erro", "Erro ao criar conta");
+            setLoading(false);
+            showCustomAlert("Erro", error.message || "Erro ao criar conta");
             return;
         }
 
-        Alert.alert("Sucesso", "Conta criada com sucesso!");
+        showCustomAlert("Sucesso", "Conta criada com sucesso!");
+
+        setLoading(false);
         setModalVisible(false);
         setUserEmail("");
         setUserPassword("");
@@ -138,7 +160,12 @@ export default function Login() {
                 </View>
 
                 <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-                    <Text style={styles.buttonText}>{loading ? "Carregando..." : "Entrar"}</Text>
+                    {loading ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                        <Text style={styles.buttonText}>Entrar</Text>
+                    )
+                    }
                 </TouchableOpacity>
 
                 <Text style={styles.ou}>------------ ou ------------</Text>
@@ -199,6 +226,19 @@ export default function Login() {
                     </View>
                 </View>
             </Modal>
+
+            {/* Custom Alert */}
+            <CustomAlert
+                visible={alertVisible}
+                title={alertTitle}
+                message={alertMessage}
+                showCancel={alertShowCancel}
+                onCancel={() => setAlertVisible(false)}
+                onConfirm={() => {
+                    setAlertVisible(false);
+                    alertOnConfirm && alertOnConfirm();
+                }}
+            />
         </View>
     );
 }

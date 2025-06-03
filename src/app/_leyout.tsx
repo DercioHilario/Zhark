@@ -1,7 +1,7 @@
-import { Stack, useRouter } from "expo-router";
-import { AuthProvider, userAuth } from "../contexts/ActhContext";
-import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
+import { Stack, useRouter, usePathname } from "expo-router";
+import { useEffect } from "react";
+import { AuthProvider, userAuth } from "../contexts/AuthContext";
+import { View, ActivityIndicator } from "react-native";
 
 export default function RootLayout() {
     return (
@@ -12,63 +12,29 @@ export default function RootLayout() {
 }
 
 function MainLayout() {
-    const { user } = userAuth();
-    const router = useRouter(); // Use useRouter() corretamente
-    const [loading, setLoading] = useState(true);
+    const { user, loading } = userAuth();
+    const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
-        const checkAuth = async () => {
-            console.log("Verificando autenticação...");
+        if (loading) return;
 
-            const { data: { session }, error } = await supabase.auth.getSession();
+        if (user && pathname !== "/(panel)/inicio") {
+            console.log("Usuário autenticado. Redirecionando para /panel/inicio");
+            router.push("/(panel)/inicio");
+        } else if (!user && pathname !== "/") {
+            console.log("Usuário não autenticado. Redirecionando para /");
+            router.push("/");
+        }
+    }, [user, loading, pathname]);
 
-            if (error) {
-                console.error("Erro ao obter sessão:", error);
-                setLoading(false);
-                return;
-            }
+    if (loading) {
+        return (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+                <ActivityIndicator size="large" color="#4CAF50" />
+            </View>
+        );
+    }
 
-            console.log("Sessão atual:", session);
-
-            setLoading(false);
-
-            if (session?.user) {
-                console.log("Usuário autenticado. Redirecionando para /panel/inicio");
-                router.replace('/(panel)/inicio');
-            } else {
-                console.log("Nenhum usuário autenticado. Redirecionando para /");
-                router.replace('/');
-            }
-        };
-
-        checkAuth();
-
-        const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-            console.log("Mudança no estado de autenticação:", session);
-
-            if (session?.user) {
-                console.log("Usuário autenticado após mudança. Redirecionando para /panel/inicio");
-                router.replace('/(panel)/inicio');
-            } else {
-                console.log("Usuário deslogado. Redirecionando para /");
-                router.replace('/');
-            }
-        });
-
-        return () => {
-            console.log("Limpando listener de autenticação...");
-            authListener.subscription.unsubscribe();
-        };
-    }, [router]); // Adicione 'router' como dependência
-
-    if (loading) return null;
-
-    return (
-        <Stack>
-            <Stack.Screen name="(panel)/_layout" options={{ headerShown: false }} />
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-        </Stack>
-    );
+    return <Stack screenOptions={{ headerShown: false }} />;
 }
-
-

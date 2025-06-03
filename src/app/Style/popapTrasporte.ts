@@ -22,7 +22,6 @@ export default StyleSheet.create({
         fontSize: 22,
     },
 
-
     searchContainer: {
         marginHorizontal: 10,
     },
@@ -195,5 +194,91 @@ export default StyleSheet.create({
         fontFamily: "Wellfleet",
     },
 
+    priceModalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
+    priceModalContent: {
+        backgroundColor: "white",
+        padding: 24,
+        borderRadius: 16,
+        width: "80%",
+        alignItems: "center",
+        elevation: 5,
+    },
+
+    priceTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 16,
+    },
+
+    priceValue: {
+        fontSize: 24,
+        color: "#28a745",
+        marginBottom: 24,
+    },
+
+    inputWithIcon: {
+        flexDirection: "row",
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        marginBottom: 10,
+    },
+
+    inputFlex: {
+        flex: 1,
+        fontSize: 16,
+        marginRight: 10,
+    },
+
+    modalOverlay: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.5)",
+    },
+    modalContent: {
+        width: "80%",
+        backgroundColor: "#fff",
+        padding: 20,
+        borderRadius: 10,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 10,
+    },
+    modalPrice: {
+        fontSize: 18,
+        color: "#333",
+        marginBottom: 10,
+    },
+    modalButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
+    modalCancel: {
+        padding: 10,
+        backgroundColor: "#ccc",
+        borderRadius: 5,
+    },
+    modalConfirm: {
+        padding: 10,
+        backgroundColor: "#28a745",
+        borderRadius: 5,
+    },
+    modalText: {
+        fontSize: 16,
+        color: "#555",
+        marginBottom: 10,
+    },
 
 });

@@ -5,7 +5,6 @@ import { StatusBar } from "expo-status-bar";
 import * as Font from "expo-font";
 import { router } from "expo-router";
 import Carousel from '../(carossel)/carrossel';
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 
 export default function Profile() {
@@ -29,7 +28,8 @@ export default function Profile() {
 
         if (category === "Comida") {
             router.replace('/(categorias)/comida');
-        } if (category === "Serviços") {
+        }
+        if (category === "Serviços") {
             router.replace('/(categorias)/servicos');
         }
         if (category === "Transporte") {
@@ -41,7 +41,18 @@ export default function Profile() {
         if (category === "Vestuário") {
             router.replace('/(categorias)/vestuario');
         }
-
+        if (category === "E-book") {
+            router.replace('/(categorias)/ebook');
+        }
+        if (category === "Cosmeticos") {
+            router.replace('/(categorias)/Cosmeticos');
+        }
+        if (category === "Eletrônicos") {
+            router.replace('/(categorias)/Eletronicos');
+        }
+        if (category === "Curso") {
+            router.replace('/(categorias)/curso');
+        }
     };
 
     return (
@@ -67,7 +78,7 @@ export default function Profile() {
                     { name: "Eletrônicos", img: require('../../../assets/img/aparelhos.png') },
                     { name: "E-book", img: require('../../../assets/img/ebook.png') },
                     { name: "Educação", img: require('../../../assets/img/cerebro.png') },
-                    { name: "Fans", img: require('../../../assets/img/sexy.png') },
+                    { name: "Cosmeticos", img: require('../../../assets/img/sexy.png') },
                     { name: "Curso", img: require('../../../assets/img/bolsa-de-estudo.png') },
                     { name: "Vestuário", img: require('../../../assets/img/cabide.png') },
                 ].map((item, index) => (

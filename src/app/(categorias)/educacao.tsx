@@ -1,51 +1,150 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, Alert, TouchableOpacity, Modal, ActivityIndicator, ScrollView, Platform, Vibration } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Modal, ActivityIndicator, ScrollView, Platform, Vibration, BackHandler } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { useFonts, Wellfleet_400Regular } from '@expo-google-fonts/wellfleet';
 import { subjects } from '../../../constants/subjects';
 import styles from "../Style/educacao";
 import AntDesign from '@expo/vector-icons/AntDesign';
-
+import { supabase } from '../../../constants/supabaseClient';
+import { CustomAlert } from '../../../constants/CustomAlert';
 
 export default function StudyGuide() {
     const [subject, setSubject] = useState('');
     const [topic, setTopic] = useState('');
     const [detalhes, setDetalhes] = useState('');
-    const [pages, setPages] = useState('1');
+    const [pages, setPages] = useState('5');
     const [classType, setClassType] = useState('0');
     const [totalPrice, setTotalPrice] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const limiteCaracteres = 200;
     const [alertaMostrado, setAlertaMostrado] = useState(false);
+    const [userPoints, setUserPoints] = useState<number>(0);
+    const [userId, setUserId] = useState<string | null>(null);
+    const router = useRouter();
+    const [alertVisible, setAlertVisible] = useState(false);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [alertTitle, setAlertTitle] = useState('');
+    const [alertOnConfirm, setAlertOnConfirm] = useState<(() => void) | undefined>(undefined);
+    const [alertShowCancel, setAlertShowCancel] = useState(false);
+    const [formData, setFormData] = useState({
+        senderName: '',
+        senderPhone: '',
+        recipientName: '',
+        recipientPhone: '',
+        deliveryLocation: '',
+        locationReference: '',
+        customMessage: ''
+    });
+
+
+    useEffect(() => {
+        const backAction = () => {
+            if (showConfirmation) {
+                setShowConfirmation(false); // Fecha o modal
+                return true; // Intercepta o botão de voltar
+            }
+            return false;
+        };
+
+        const backHandler = BackHandler.addEventListener(
+            'hardwareBackPress',
+            backAction
+        );
+
+        return () => backHandler.remove();
+    }, [showConfirmation]);
+
+    // Pega o usuário autenticado e carrega pontos
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const { data, error } = await supabase.auth.getUser();
+                if (error) {
+                    console.error('Erro ao obter usuário:', error.message);
+                    return;
+                }
+                if (data.user) {
+                    setUserId(data.user.id);
+                    fetchUserPoints(data.user.id);
+                }
+            } catch (error) {
+                console.error('Erro ao buscar usuário autenticado:', error);
+            }
+        };
+
+        const fetchUserPoints = async (id: string) => {
+            const { data, error } = await supabase
+                .from('users')
+                .select('points')
+                .eq('id', id)
+                .single();
+
+            if (error) {
+                console.error('Erro ao buscar pontos do usuário:', error.message);
+            } else {
+                setUserPoints(data.points);
+            }
+        };
+
+        fetchUser();
+    }, []);
+
+    const showCustomAlert = (title: string, message: string, onConfirm?: () => void, showCancel = false) => {
+        setAlertTitle(title);
+        setAlertMessage(message);
+        setAlertOnConfirm(() => onConfirm);
+        setAlertShowCancel(showCancel);
+        setAlertVisible(true);
+    };
 
     useEffect(() => {
         if (detalhes.length === limiteCaracteres && !alertaMostrado) {
-            Alert.alert('Limite atingido', `Você atingiu o limite de ${limiteCaracteres} caracteres.`);
-            Vibration.vibrate(200); // vibra por 200ms
+            showCustomAlert(
+                'Limite atingido',
+                `Você atingiu o limite de ${limiteCaracteres} caracteres.`
+            );
+            Vibration.vibrate(200);
             setAlertaMostrado(true);
         }
 
         if (detalhes.length < limiteCaracteres && alertaMostrado) {
-            setAlertaMostrado(false); // reseta o alerta para futuros avisos
+            setAlertaMostrado(false);
         }
     }, [detalhes]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                router.replace('/(panel)/inicio');
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => subscription.remove();
+        }, [router])
+    );
+
+    useEffect(() => {
+        const numPages = parseInt(pages, 10);
+        if (numPages > 0 && numPages < 5) {
+            showCustomAlert('Aviso', 'O número mínimo de páginas é 5.');
+        }
+    }, [pages]);
 
     const [fontsLoaded] = useFonts({
         Wellfleet: Wellfleet_400Regular,
     });
-
-    const router = useRouter();
 
     const updateTotal = useCallback((selectedClassType: string, selectedPages: string) => {
         const numPages = parseInt(selectedPages, 10) || 0;
         if (selectedClassType === '0') {
             setTotalPrice(0);
         } else {
-            const pricePerPage = selectedClassType === 'offline' ? 10 : 5;
+            const pricePerPage = selectedClassType === 'offline' ? 2 : 1;
             setTotalPrice(numPages * pricePerPage);
         }
     }, []);
@@ -54,30 +153,112 @@ export default function StudyGuide() {
         updateTotal(classType, pages);
     }, [classType, pages, updateTotal]);
 
-    const isFormValid = subject && topic && parseInt(pages, 10) > 0 && classType !== '0';
+    const isFormValid = subject && topic && parseInt(pages, 10) >= 5 && classType !== '0';
 
     const handleSubmit = async () => {
         if (!isFormValid) {
-            Alert.alert('Error', 'Please fill in all fields correctly.');
+            showCustomAlert('Erro', 'Preencha todos os campos corretamente.');
             return;
         }
 
         setIsLoading(true);
         try {
-            // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1500));
             setShowConfirmation(true);
         } catch (error) {
-            Alert.alert('Error', 'An error occurred while processing your request.');
+            showCustomAlert('Erro', 'Ocorreu um erro ao processar seu pedido.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleFinalize = () => {
-        setShowConfirmation(false);
-        router.replace('/(panel)/inicio');
+const handleFinalize = async () => {
+  if (!userId) {
+    showCustomAlert('Erro', 'Usuário não identificado.');
+    return;
+  }
+
+  // Ponto = 1 MTZ, arredonda pra baixo
+  const requiredPoints = Math.floor(totalPrice);
+
+  if (userPoints < requiredPoints) {
+    showCustomAlert(
+      'Pontos Insuficientes',
+      'Você não tem pontos suficientes para finalizar a compra.',
+      () => router.push('/(categorias)/(Perfil)/RecargaPontos'),
+      true
+    );
+    return;
+  }
+
+  setShowConfirmation(false);
+  setIsLoading(true);
+
+  try {
+    const newPoints = userPoints - requiredPoints;
+
+    // Atualiza pontos do usuário
+    const { error: pontosError } = await supabase
+      .from('users')
+      .update({ points: newPoints })
+      .eq('id', userId);
+
+    if (pontosError) {
+      console.error('Erro ao atualizar pontos:', pontosError);
+      showCustomAlert('Erro', 'Não foi possível finalizar a compra.');
+      setIsLoading(false);
+      return;
+    }
+
+    // Define tipo de aula e tempo estimado
+    const tipoAula = classType === 'online' ? 'online' : 'offline';
+    const tempoEstimadoMinutos = tipoAula === 'online' ? 15 : 60;
+
+    // Monta o objeto do pedido (um objeto simples)
+    const pedidoObj = {
+      tema: subject,
+      topico: topic,
+      tipo_aula: tipoAula,
+      numero_paginas: parseInt(pages, 10),
     };
+
+    // Garante que items seja uma string JSON representando um array com o pedidoObj dentro
+    const itemsString = JSON.stringify([pedidoObj]);
+
+    // Insere o pedido na tabela 'pedidos'
+    const { data, error } = await supabase
+      .from('pedidos')
+      .insert([
+        {
+          user_id: userId,
+          items: itemsString,  // aqui vai a string JSON do array
+          total: totalPrice,
+          status: 'pendente',
+          tempo_entrega_minutos: tempoEstimadoMinutos,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+
+    if (error) {
+      console.error('Erro ao salvar pedido:', error);
+      showCustomAlert('Erro', 'Não foi possível salvar o pedido.');
+      setIsLoading(false);
+      return;
+    }
+
+    // Atualiza pontos localmente
+    setUserPoints(newPoints);
+
+    showCustomAlert('Sucesso', 'Compra finalizada com sucesso!', () =>
+      router.replace('/(panel)/inicio')
+    );
+  } catch (error) {
+    console.error('Erro geral ao finalizar:', error);
+    showCustomAlert('Erro', 'Ocorreu um erro inesperado.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
     const goToHome = useCallback(() => {
         router.replace('/(panel)/inicio');
@@ -86,7 +267,9 @@ export default function StudyGuide() {
     if (!fontsLoaded) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#4A90E2" />
+                <StatusBar style="auto" />
+                <ActivityIndicator size="large" color="#4CAF50" />
+                <Text style={styles.loadingText}>Carregando...</Text>
             </View>
         );
     }
@@ -102,6 +285,7 @@ export default function StudyGuide() {
                 <Text style={styles.headerTitle}> Guia de Estudo </Text>
                 <View style={{ width: 24 }} />
             </View>
+
             <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
                 <View style={styles.card}>
                     <Text style={styles.title}>Solicitar Guia de Estudo</Text>
@@ -115,11 +299,7 @@ export default function StudyGuide() {
                                 style={[styles.picker, Platform.OS === 'web' && styles.webPicker]}
                             >
                                 {subjects.map((item) => (
-                                    <Picker.Item
-                                        key={item.value}
-                                        label={item.label}
-                                        value={item.value}
-                                    />
+                                    <Picker.Item key={item.value} label={item.label} value={item.value} />
                                 ))}
                             </Picker>
                         </View>
@@ -140,7 +320,7 @@ export default function StudyGuide() {
                         <Text style={styles.label}>Número de Páginas:</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="Enter number of pages"
+                            placeholder="Digite o número de páginas (mínimo 5)"
                             keyboardType="numeric"
                             value={pages}
                             onChangeText={setPages}
@@ -158,7 +338,7 @@ export default function StudyGuide() {
                             >
                                 <Picker.Item label="Selecionar formato" value="0" />
                                 <Picker.Item label="Formato Digital" value="online" />
-                                <Picker.Item label="Formato fisico" value="offline" />
+                                <Picker.Item label="Formato físico" value="offline" />
                             </Picker>
                         </View>
                     </View>
@@ -170,7 +350,7 @@ export default function StudyGuide() {
                             placeholder="Detalhes do guia (opcional)"
                             value={detalhes}
                             onChangeText={setDetalhes}
-                            multiline={true}
+                            multiline
                             maxLength={limiteCaracteres}
                             placeholderTextColor="#999"
                         />
@@ -194,6 +374,7 @@ export default function StudyGuide() {
                     visible={showConfirmation}
                     transparent
                     animationType="fade"
+                    onRequestClose={() => setShowConfirmation(false)}
                 >
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
@@ -233,8 +414,8 @@ export default function StudyGuide() {
                                     </View>
 
                                     <View style={[styles.orderItemv, styles.totalItem]}>
-                                        <Text style={styles.totalLabel}>Preço Total:</Text>
-                                        <Text style={styles.modalTotalPrice}>{totalPrice} MZ</Text>
+                                        <Text style={styles.totalLabel}>Total:</Text>
+                                        <Text style={styles.modalTotalPrice}>{totalPrice} Z-coins</Text>
                                     </View>
                                 </View>
                             </View>
@@ -248,6 +429,19 @@ export default function StudyGuide() {
                         </View>
                     </View>
                 </Modal>
+
+                {/* Custom Alert */}
+                <CustomAlert
+                    visible={alertVisible}
+                    title={alertTitle}
+                    message={alertMessage}
+                    showCancel={alertShowCancel}
+                    onCancel={() => setAlertVisible(false)}
+                    onConfirm={() => {
+                        setAlertVisible(false);
+                        alertOnConfirm && alertOnConfirm();
+                    }}
+                />
             </ScrollView>
         </View>
     );

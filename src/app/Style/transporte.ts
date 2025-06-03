@@ -73,13 +73,12 @@ export default StyleSheet.create({
     },
     optionImage: {
         width: '100%',
-        height: 85,
-        borderTopLeftRadius: 15,
-        borderTopRightRadius: 15,
+        height: 120,
+        resizeMode: 'contain',
     },
     optionInfo: {
-        padding: 15,
-        alignItems: 'center', // Substitui text-align: center
+        padding: 5,
+        alignItems: 'center',
         justifyContent: 'center',
     },
     optionName: {

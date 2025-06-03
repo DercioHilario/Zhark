@@ -1,145 +1,49 @@
-import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
+import { View, Text, ScrollView, Image, TouchableOpacity, StyleSheet, TextInput, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useCallback, useEffect } from 'react';
-import ProductDetailsModal from '../../../components/ProductDetailsModal';
+import ProductDetailsModal from '../../../components/VestuarioDetailsModal';
 import { Search } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as Font from "expo-font";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import styles from "../Style/vestuario";
+import styles from "../Style/comida";
+import { supabase } from '../../../constants/supabaseClient';
 
-interface ProductColor {
-    name: string;
-    code: string;
-    images: string[];
-}
-
+// Interface atualizada
 interface Product {
     id: number;
-    name: string;
-    price: string;
-    description: string;
-    image: string;
-    colors: ProductColor[];
-    sizes: string[];
+    nome: string;
+    preço: string;
+    descrição: string;
+    tamanho: string;
+    cor: string;
+    imagem: string;
+    imagens: string[];
+    categoria: string;
+    tempo_entrega_minutos: number | null;
 }
-
-
-
-const FEATURED_PRODUCTS: Product[] = [
-    {
-        id: 1,
-        name: 'Camiseta Básica',
-        price: '79,90',
-        description: 'Camiseta básica em algodão premium com acabamento suave e confortável. Perfeita para o dia a dia, possui corte regular e gola careca reforçada. O tecido de alta qualidade garante durabilidade e mantém o formato mesmo após várias lavagens.',
-        image: require("../../../assets/img/designer-de-web.png"),
-        sizes: ['P', 'M', 'G', 'GG'],
-        colors: [
-            {
-                name: 'Branco',
-                code: '#FFFFFF',
-                images: [
-                    '../../../assets/img/produto/camisaBranca.png',
-                    '../../../assets/img/produto/camisaBranca.png',
-                    '../../../assets/img/produto/camisaBranca.png',
-                ],
-            },
-            {
-                name: 'Preto',
-                code: '#000000',
-                images: [
-                    '../../../assets/img/produto/camisaBranca.png',
-                    '../../../assets/img/produto/camisaBranca.png',
-                    '../../../assets/img/produto/camisaBranca.png',
-                ],
-            },
-            {
-                name: 'Cinza',
-                code: '#888888',
-                images: [
-                    '../../../assets/img/produto/camisaBranca.png',
-                    '../../../assets/img/produto/camisaBranca.png',
-                    '../../../assets/img/produto/camisaBranca.png',
-                ],
-            },
-        ],
-    },
-    {
-        id: 2,
-        name: 'Calça Jeans',
-        price: '159,90',
-        description: 'Calça jeans de alta qualidade com lavagem moderna e acabamento premium. O corte slim favorece diversos tipos de corpo, enquanto o denim elástico garante conforto durante todo o dia. Possui cinco bolsos e detalhes em costura reforçada.',
-        image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&auto=format',
-        sizes: ['36', '38', '40', '42', '44'],
-        colors: [
-            {
-                name: 'Azul Claro',
-                code: '#6BA4B8',
-                images: [
-                    'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1475178626620-a4d074967452?w=500&auto=format',
-                ],
-            },
-            {
-                name: 'Azul Escuro',
-                code: '#1B365C',
-                images: [
-                    'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1542272604-787c3835535d?w=500&auto=format',
-                ],
-            },
-        ],
-    },
-    {
-        id: 3,
-        name: 'Vestido Floral',
-        price: '199,90',
-        description: 'Vestido floral confeccionado em tecido leve e fluido, perfeito para ocasiões especiais ou uso casual. O padrão floral exclusivo combina cores vibrantes que trazem vida ao look. Possui forro interno e fechamento em zíper invisível nas costas.',
-        image: 'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=500&auto=format',
-        sizes: ['P', 'M', 'G'],
-        colors: [
-            {
-                name: 'Rosa',
-                code: '#FFB6C1',
-                images: [
-                    'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=500&auto=format',
-                ],
-            },
-            {
-                name: 'Azul',
-                code: '#87CEEB',
-                images: [
-                    'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500&auto=format',
-                    'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500&auto=format',
-                ],
-            },
-        ],
-    },
-];
 
 export default function HomeScreen() {
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [fontsLoaded, setFontsLoaded] = useState(false);
+    const [categories, setCategories] = useState<string[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+    const router = useRouter();
 
     const openProductDetails = (product: Product) => {
         setSelectedProduct(product);
         setModalVisible(true);
     };
 
-    const router = useRouter();
-
     const goToHome = useCallback(() => {
         router.replace('/(panel)/inicio');
     }, [router]);
-
-    const [fontsLoaded, setFontsLoaded] = useState(false);
 
     useEffect(() => {
         const loadFonts = async () => {
@@ -155,22 +59,75 @@ export default function HomeScreen() {
         loadFonts();
     }, []);
 
-    const [selectedSize, setSelectedSize] = useState<string | null>(null);
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                // Redireciona para a tela anterior
+                router.replace('/(panel)/inicio'); // ou router.push() se preferir empilhar
+                return true; // evita que o app feche
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+            return () => subscription.remove();
+        }, [])
+    );
+
+    // Carregar os produtos do Supabase
+    const fetchProducts = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('vestuario_produtos')
+                .select('*');
+            if (error) {
+                console.error('Erro ao buscar produtos:', error);
+            } else
+                if (Array.isArray(data)) {
+                    const validProducts = data.filter((p) => typeof p.nome === 'string');
+                    const mappedProducts = validProducts.map((item) => ({
+                        id: item.id,
+                        nome: item.nome,
+                        preço: item.preço,
+                        descrição: item.descrição,
+                        tamanho: item.tamanho,
+                        cor: item.cor,
+                        imagem: item.imagem,
+                        imagens: item.imagens,
+                        categoria: item.categoria,
+                        tempo_entrega_minutos: typeof item.tempo_entrega_minutos === 'number' ? item.tempo_entrega_minutos : 0,
+                    }));
+                    setProducts(mappedProducts);
+                    // Extraindo categorias únicas
+                    const uniqueCategories = [...new Set(mappedProducts.map(p => p.categoria).filter(Boolean))];
+                    setCategories(uniqueCategories);
+                }
+        } catch (err) {
+            console.error('Erro ao carregar os produtos:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchProducts();
+    }, []);
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar style="auto" />
+
             {/* Header */}
             <View style={styles.headerContainer}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={goToHome}>
                         <MaterialCommunityIcons name="arrow-left" size={28} color="#000" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Comida</Text>
+                    <Text style={styles.headerTitle}>Vestuário</Text>
                     <TouchableOpacity>
                         <MaterialCommunityIcons name="arrow-left" size={28} color="white" />
                     </TouchableOpacity>
                 </View>
+
                 {/* Search */}
                 <View style={styles.searchContainer}>
                     <Search stroke="#9CA3AF" width={20} height={20} style={styles.searchIcon} />
@@ -181,40 +138,101 @@ export default function HomeScreen() {
                         onChangeText={setSearchTerm}
                     />
                 </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingVertical: 10 }}>
+                    <TouchableOpacity
+                        onPress={() => setSelectedCategory(null)}
+                        style={[styles.categoryButton, selectedCategory === null && styles.categoryButtonActive]}
+                    >
+                        <Text style={[styles.categoryText, selectedCategory === null && styles.categoryTextActive]}>
+                            Todos
+                        </Text>
+                    </TouchableOpacity>
+                    {categories.map((cat) => (
+                        <TouchableOpacity
+                            key={cat}
+                            onPress={() => setSelectedCategory(cat)}
+                            style={[
+                                styles.categoryButton,
+                                selectedCategory === cat && styles.categoryButtonActive
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    styles.categoryText,
+                                    selectedCategory === cat && styles.categoryTextActive
+                                ]}
+                            >
+                                {cat}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
                 <Text style={styles.sectionTitle}>Produtos:</Text>
             </View>
-
+            {/* Lista de produtos */}
             <ScrollView showsVerticalScrollIndicator={false}>
-
                 <View style={styles.featuredSection}>
-
                     <ScrollView
                         showsVerticalScrollIndicator={false}
                         style={styles.productsContainer}
-                        contentContainerStyle={{ paddingBottom: 20 }}
+                        contentContainerStyle={{ paddingVertical: 10 }}
                     >
-                        <View style={styles.productsWrapper}>
-                            {FEATURED_PRODUCTS.map((product) => (
-                                <TouchableOpacity
-                                    key={product.id}
-                                    style={styles.productCard}
-                                    onPress={() => openProductDetails(product)}
-                                >
-                                    <Image
-                                        source={{ uri: product.image }}
-                                        style={styles.productImage}
-                                    />
-                                    <View style={styles.productInfo}>
-                                        <Text style={styles.productName}>{product.name}</Text>
-                                        <Text style={styles.productPrice}>{product.price} MTZ</Text>
+                        {loading ? (
+                            <View style={styles.productsWrapper}>
+                                {[...Array(6)].map((_, index) => (
+                                    <View key={index} style={styles.skeletonCard}>
+                                        <View style={styles.skeletonImage} />
+                                        <View style={styles.skeletonText} />
+                                        <View style={styles.skeletonTextShort} />
                                     </View>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
+                                ))}
+                            </View>
+                        ) : (
+                            <View style={styles.productsWrapper}>
+                                {products.filter(product => {
+                                    const matchesSearch = searchTerm.trim() === '' || product.nome.toLowerCase().includes(searchTerm.toLowerCase());
+                                    const matchesCategory = selectedCategory === null || product.categoria === selectedCategory;
+                                    return matchesSearch && matchesCategory;
+                                }).length === 0 ? (
+                                    <View style={styles.noResultsContainer}>
+                                        <Text style={styles.noResultsText}>
+                                            {searchTerm.trim() !== ''
+                                                ? `O produto "${searchTerm}" não existe!`
+                                                : 'Nenhum produto encontrado.'}
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    products
+                                        .filter(product => {
+                                            const matchesSearch = searchTerm.trim() === '' || product.nome.toLowerCase().includes(searchTerm.toLowerCase());
+                                            const matchesCategory = selectedCategory === null || product.categoria === selectedCategory;
+                                            return matchesSearch && matchesCategory;
+                                        })
+                                        .map((product) => (
+                                            <TouchableOpacity
+                                                key={product.id}
+                                                style={styles.productCard}
+                                                onPress={() => openProductDetails(product)}
+                                            >
+                                                <Image
+                                                    source={{ uri: product.imagem }}
+                                                    style={styles.productImage}
+                                                />
+                                                <View style={styles.productInfo}>
+                                                    <Text style={styles.productName}>{product.nome}</Text>
+                                                    <Text style={styles.productPrice}>{product.preço} Z-coins</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        ))
+                                )}
+                            </View>
+                        )}
+
                     </ScrollView>
                 </View>
             </ScrollView>
 
+            {/* Modal de detalhes */}
             <ProductDetailsModal
                 visible={modalVisible}
                 onClose={() => setModalVisible(false)}

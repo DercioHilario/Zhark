@@ -12,7 +12,12 @@ export default StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#f5f5f5',
+    },
+    loadingText: {
+        marginTop: 12,
+        fontFamily: 'Wellfleet',
+        fontSize: 16,
+        color: '#555',
     },
     header: {
         flexDirection: 'row',
